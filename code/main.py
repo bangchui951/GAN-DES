@@ -63,8 +63,7 @@ class ViewG(nn.Module):
     def forward(self, x):
         return x.view(*self.shape)
 
-#生成器，使用全连接层和多个残差块生成图像。包含一个全连接层MaskedMLP,将噪声输入映射到一个初始的4*4*256的特征图，随后经过多个残差块，使用了MaskedConv2d进行卷积操作，最后
-#输出经过激活函数Tanh,并且通过一个全连接层映射到目标维度为5的输出
+
 class RG_ResGenerator32(nn.Module):
     def __init__(self, z_dim, sparse_train_mode=False):
         super().__init__()
@@ -166,9 +165,7 @@ class ViewD(nn.Module):
     def forward(self, x):
         return x.view(*self.shape)
 
-#判别器，使用多个优化的残差块和全连接层判断图像的真实性。
-#包含多个残差块，使用了MaskedConv2d进行卷积操作，输入数据先经过一个全连接层MaskedMLP映射
-#到3*32*32的特征图，然后经过一系列残差块和池化操作，最后通过一个全连接层输出真假的判断
+
 class RG_ResDiscriminator32(nn.Module):
     def __init__(self, sparse_train_mode=False):
         super().__init__()
@@ -204,7 +201,7 @@ class TabularDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx], self.labels[idx]
 
-#从 Excel 文件中加载数据，提取特征和标签，并对特征进行归一化。
+
 def load_and_normalize_dataset(dataset_path):
     _dataset = pd.read_excel(dataset_path, engine='openpyxl')
     dataset = _dataset.values
@@ -218,7 +215,7 @@ def load_and_normalize_dataset(dataset_path):
 
     return samples_normalized, labels, scaler
 
-#从数据集中提取一个批次的数据
+
 def get_batch(samples, labels, batch_size, batch_idx):
     start_pos = batch_idx * batch_size
     end_pos = start_pos + batch_size
@@ -239,13 +236,13 @@ def main():
     samples, labels, scaler = load_and_normalize_dataset(dataroot)
 
 
-    # 加载数据并将数据集拆分为训练集和验证集。
+   
     # Split dataset into training and validation sets
     validation_split = 0.1
     split_idx = int(len(samples) * (1 - validation_split))
     train_seqs, vali_seqs = samples[:split_idx], samples[split_idx:]
     train_targets, vali_targets = labels[:split_idx], labels[split_idx:]
-    # 创建训练和验证的数据集及数据加载器
+   
     # Create dataset and dataloader
     train_dataset = TabularDataset(train_seqs, train_targets)
     dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=args.workers)
@@ -253,22 +250,22 @@ def main():
     vali_dataset = TabularDataset(vali_seqs, vali_targets)
     vali_dataloader = DataLoader(vali_dataset, batch_size=batch_size, shuffle=False, num_workers=args.workers)
 
-#初始化生成器和判别器模型，并将其移动到指定设备上
+
     netD = RG_ResDiscriminator32().to(device)
     netG = RG_ResGenerator32(args.noise_size).to(device)
-#复制生成器的参数，用于计算移动平均
+
     netG_avg_param = copy_params(netG)
     netG.sparse_train_mode = True
     netD.sparse_train_mode = True
-#设置生成器和判别器的稀疏训练模式
+
     set_training_mode(netG, netG.sparse_train_mode)
     set_training_mode(netD, netD.sparse_train_mode)
 #为生成器和判别器设置Adam优化器
     # Setup Adam optimizers for both G and D
     optimizerD = optim.Adam(netD.parameters(), args.lr, (0, 0.9))
     optimizerG = optim.Adam(netG.parameters(), args.lr, (0, 0.9))
-#生成固定噪声，用于图像对比
-#fixed_noise = torch.randn(64, args.noise_size, device=device)
+
+
 
     print("Starting Training Loop...")
     best_fid = 9999
@@ -423,7 +420,7 @@ def main():
                         f.write(x + '\n')
                     f.write('Overall:' + str(g_current_keep_ratio.item()) + '\n')
                     f.write('\n')
-#保存生成器参数，是为了在评估阶段能够恢复到训练前的状态
+
             backup_param = copy_params(netG)
             load_params(netG, netG_avg_param)
             netG.eval()
@@ -507,5 +504,3 @@ if __name__ == '__main__':
 
     device = "cuda"
     main()
-#dataroot = '../data/combined.xlsx'
-#samples, labels, scaler = load_and_normalize_dataset(dataroot)
