@@ -161,9 +161,3 @@ class MaskedConv2d(nn.Module):
         conv_out = torch.nn.functional.conv2d(x, self.weight * self.mask, bias=self.bias, stride=self.stride,
                                               padding=self.padding, dilation=self.dilation, groups=self.groups)
         return conv_out
-#MaskedConv2d 类实现了一个自定义的卷积层，通过权重掩码支持稀疏训练。在稀疏训练模式下，模型通过调整权重的阈值来控制哪些权重被保留，以优化计算效率。
-
-#掩码的动态调整：掩码的动态调整是一个自动化的过程，目的是根据权重的分布和训练阶段的需求来调整稀疏性。动态调整的过程确保了模型在训练过程中能够维持一定的有效性。
-
-#权重裁剪和再生：裁剪是通过掩码直接实现的，掩码决定了哪些权重被保留。再生（重新调整阈值）确保了掩码能够适应不同的训练阶段，从而避免掩码过于稀疏，保证模型的性能。
-#第一次计算是根据当前的阈值来确定初步的掩码，而第二次计算是在发现稀疏性过高时，通过将阈值重置为 0 来重新计算掩码，以避免过度稀疏。这样可以动态调整稀疏性，保持模型的有效性。
